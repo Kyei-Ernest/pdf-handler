@@ -4,6 +4,9 @@
 // =============================================================================
 require_once __DIR__ . '/config.php';
 
+// Optional auth hook
+if (function_exists('pdf_lib_auth_guard')) pdf_lib_auth_guard();
+
 session_name(SESSION_NAME);
 session_start();
 
@@ -40,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['confirm'] ?? '') === 'yes'
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Delete Document — PDF Library</title>
+<title>Delete Document — <?= htmlspecialchars(MODULE_NAME) ?></title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>:root{--brand:#1a73e8;}body{background:#f8f9fa;}</style>
@@ -48,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['confirm'] ?? '') === 'yes'
 <body>
 <nav class="navbar py-2" style="background:var(--brand)">
   <div class="container">
-    <a class="navbar-brand text-white fw-bold" href="index.php"><i class="bi bi-collection-fill me-2"></i>PDF Library</a>
+    <a class="navbar-brand text-white fw-bold" href="index.php"><i class="bi bi-collection-fill me-2"></i><?= htmlspecialchars(MODULE_NAME) ?></a>
   </div>
 </nav>
 <div class="container py-5" style="max-width:500px">

@@ -4,6 +4,9 @@
 // =============================================================================
 require_once __DIR__ . '/config.php';
 
+// Optional auth hook
+if (function_exists('pdf_lib_auth_guard')) pdf_lib_auth_guard();
+
 $pdo = db_connect();
 
 $id = (int)($_GET['id'] ?? 0);
@@ -31,7 +34,7 @@ function fmt_size(int $bytes): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= htmlspecialchars($doc['title']) ?> — PDF Library</title>
+<title><?= htmlspecialchars($doc['title']) ?> — <?= htmlspecialchars(MODULE_NAME) ?></title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -113,7 +116,7 @@ function fmt_size(int $bytes): string {
 <!-- ── Toolbar ──────────────────────────────────────────────────────────────── -->
 <div id="toolbar">
   <!-- Back -->
-  <a href="index.php" class="tb-btn text-decoration-none" title="Back to Library">
+  <a href="index.php" class="tb-btn text-decoration-none" title="Back to <?= htmlspecialchars(MODULE_NAME) ?>">
     <i class="bi bi-arrow-left"></i>
   </a>
   <div class="tb-divider"></div>

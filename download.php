@@ -4,6 +4,9 @@
 // =============================================================================
 require_once __DIR__ . '/config.php';
 
+// Optional auth hook
+if (function_exists('pdf_lib_auth_guard')) pdf_lib_auth_guard();
+
 $pdo = db_connect();
 $id  = (int)($_GET['id'] ?? 0);
 

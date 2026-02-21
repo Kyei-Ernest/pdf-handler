@@ -4,6 +4,9 @@
 // =============================================================================
 require_once __DIR__ . '/config.php';
 
+// Optional auth hook
+if (function_exists('pdf_lib_auth_guard')) pdf_lib_auth_guard();
+
 session_name(SESSION_NAME);
 session_start();
 
@@ -20,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title       = trim($_POST['title']       ?? '');
     $description = trim($_POST['description'] ?? '');
     $category    = trim($_POST['category']    ?? '');
-    $uploadedBy  = trim($_POST['uploaded_by'] ?? 'admin');
+    $uploadedBy  = trim($_POST['uploaded_by'] ?? (function_exists('pdf_lib_current_user') ? (pdf_lib_current_user() ?? 'admin') : 'admin'));
 
     // Validate title
     if ($title === '') $errors[] = 'Document title is required.';
@@ -87,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Upload PDF — PDF Library</title>
+<title>Upload PDF — <?= htmlspecialchars(MODULE_NAME) ?></title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -108,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <nav class="navbar py-2 shadow-sm">
   <div class="container">
     <a class="navbar-brand fw-bold" href="index.php">
-      <i class="bi bi-collection-fill me-2"></i>PDF Library
+      <i class="bi bi-collection-fill me-2"></i><?= htmlspecialchars(MODULE_NAME) ?>
     </a>
     <a href="index.php" class="btn btn-outline-light btn-sm ms-auto">
       <i class="bi bi-arrow-left me-1"></i>Back to Library
@@ -180,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="col-md-6">
           <label class="form-label fw-semibold">Uploaded by</label>
           <input type="text" name="uploaded_by" class="form-control"
-                 value="<?= htmlspecialchars($_POST['uploaded_by'] ?? 'admin') ?>" placeholder="Your name">
+          value="<?= htmlspecialchars($_POST['uploaded_by'] ?? (function_exists('pdf_lib_current_user') ? (pdf_lib_current_user() ?? 'admin') : 'admin')) ?>" placeholder="Your name">
         </div>
       </div>
 

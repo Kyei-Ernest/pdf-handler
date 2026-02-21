@@ -1,61 +1,130 @@
 # PDF Library Module
-A plug-and-play PHP + MySQL module for a digital library that lets users upload, browse, and read PDF documents via a modern Google Drive–style viewer.
+
+A plug-and-play PHP + MySQL module for a digital library. Drop it into any PHP project to add PDF upload, browsing, and a full Google Drive–style viewer — with zero framework dependencies.
 
 ---
 
 ## 📁 File Structure
 
 ```
-pdf_library/
-├── config.php        ← Database credentials & settings  (EDIT THIS)
-├── database.sql      ← Run once to create MySQL tables
-├── index.php         ← Document listing / search / filter
-├── upload.php        ← Upload new PDFs with metadata
-├── viewer.php        ← Google Drive–style PDF viewer
-├── download.php      ← Secure file download handler
-├── delete.php        ← Soft-delete a document
-└── uploads/          ← Uploaded PDF files (auto-created, must be writable)
+pdf_handler/
+├── config.example.php  ← Template — copy to config.php and edit
+├── config.php          ← Your live credentials (gitignored)
+├── install.php         ← Web installer (delete after setup!)
+├── database.sql        ← Run manually if not using install.php
+├── index.php           ← Document listing / search / filter
+├── upload.php          ← Upload PDFs with metadata
+├── viewer.php          ← PDF.js powered viewer
+├── download.php        ← Secure file download
+├── delete.php          ← Soft-delete a document
+├── .gitignore          ← Keeps config.php & uploads/ out of git
+└── uploads/            ← Auto-created on install, must be writable
 ```
 
 ---
 
-## ⚡ Quick Setup
+## ⚡ Quick Setup (Recommended — Web Installer)
 
-### 1. Database
-```sql
--- In MySQL / phpMyAdmin run:
-SOURCE /path/to/pdf_library/database.sql;
-```
-This creates the `pdf_library` database with `pdf_documents` and `pdf_categories` tables.
+1. **Copy the module folder** into your web root (e.g. `/var/www/html/pdf_handler/`)
+2. **Set permissions**: the web server must be able to write to the module directory so `install.php` can create `config.php` and `uploads/`
+3. Open **`http://yoursite.com/pdf_handler/install.php`** in your browser
+4. Fill in your database credentials and click **Run Installation**
+5. **Delete `install.php`** once setup is complete
 
-### 2. Configure
-Edit **`config.php`**:
-```php
-define('DB_USER',    'your_db_user');
-define('DB_PASS',    'your_db_password');
-define('UPLOAD_URL', '/pdf_library/uploads/');  // adjust to your URL path
-define('MODULE_URL', '/pdf_library');            // adjust to your URL path
-```
+> The installer creates the database, all tables, default categories, the `uploads/` directory, and writes `config.php` automatically.
 
-### 3. Permissions
+---
+
+## 🔧 Manual Setup
+
+If you prefer to set up manually instead of using the installer:
+
 ```bash
-# The uploads folder must be writable by the web server
-chmod 775 pdf_library/uploads/
-chown www-data:www-data pdf_library/uploads/   # Linux/Apache
-```
+# 1. Create config.php from the template
+cp config.example.php config.php
+# Edit config.php and fill in your DB credentials and paths
 
-### 4. PHP Requirements
-- PHP **8.0+**
-- Extensions: `pdo`, `pdo_mysql`, `fileinfo`
-- Max upload size: set in `php.ini` → `upload_max_filesize = 50M` and `post_max_size = 55M`
+# 2. Import the database schema
+mysql -u YOUR_USER -p < database.sql
+
+# 3. Create writable uploads folder
+mkdir -p uploads
+chmod 775 uploads
+chown www-data:www-data uploads   # Linux/Apache
+```
 
 ---
 
-## 🔗 Integrating Into Your Existing Library
+## 🔗 Integrating into an Existing App
 
-Simply link to `index.php` from your main app's navigation. Since `config.php` defines `MODULE_URL`, all internal links are relative and easy to adjust.
+This module is designed as a **drop-in**. There are three integration points, all optional.
 
-To share your existing MySQL connection, replace `db_connect()` in `config.php` with a function that returns your existing PDO instance.
+### 1. Reuse your existing database connection
+
+Instead of managing its own PDO, the module will use yours if you define `db_connect()` before requiring `config.php`:
+
+```php
+// In your bootstrap / before requiring config.php:
+function db_connect(): PDO {
+    return MyApp::getDatabase();   // return your existing PDO instance
+}
+
+require_once '/path/to/pdf_handler/config.php';
+```
+
+### 2. Protect pages with your auth system
+
+Define `pdf_lib_auth_guard()` anywhere before the module loads and it will be called at the top of every page:
+
+```php
+function pdf_lib_auth_guard(): void {
+    if (!isset($_SESSION['user'])) {
+        header('Location: /login.php');
+        exit;
+    }
+}
+```
+
+### 3. Pre-fill the "Uploaded by" field
+
+Return the current user's name from `pdf_lib_current_user()`:
+
+```php
+function pdf_lib_current_user(): ?string {
+    return $_SESSION['user']['name'] ?? null;
+}
+```
+
+### Minimal integration example
+
+```php
+<?php
+// In your app's bootstrap (loaded before the module):
+
+// 1. Reuse your DB
+function db_connect(): PDO { return MyApp::db(); }
+
+// 2. Apply your auth
+function pdf_lib_auth_guard(): void {
+    if (!MyApp::isLoggedIn()) { header('Location: /login'); exit; }
+}
+
+// 3. Pass the current user
+function pdf_lib_current_user(): ?string {
+    return MyApp::currentUser()?->name;
+}
+
+// Then just link users to:
+// http://yourapp.com/pdf_handler/index.php
+```
+
+### Changing the library name / branding
+
+Edit `MODULE_NAME` in `config.php`:
+
+```php
+define('MODULE_NAME', 'Document Vault');  // shown in navbar & page titles
+```
 
 ---
 
@@ -63,27 +132,43 @@ To share your existing MySQL connection, replace `db_connect()` in `config.php` 
 
 | Feature | Details |
 |---|---|
-| **Upload** | Drag & drop or click-to-browse; validates real PDF magic bytes |
+| **Quick Install** | Web wizard at `install.php` — no CLI needed |
+| **Upload** | Drag & drop or click-to-browse; validates PDF magic bytes |
 | **Listing** | Grid view with search, category filter, sort, pagination |
-| **Viewer** | PDF.js powered, multi-page scroll, zoom in/out, fit-page, thumbnails panel |
+| **Viewer** | PDF.js powered, multi-page scroll, zoom, fit-page, thumbnails |
 | **Sidebar** | Document metadata + related documents in same category |
 | **Download** | Secure `readfile()` delivery, tracks download count |
-| **Delete** | Soft-delete (sets `is_active = 0`) + optional file removal |
+| **Delete** | Soft-delete (`is_active = 0`) + optional file removal |
 | **Keyboard** | `↑/↓` page nav, `+/-` zoom |
 | **Mobile** | Fully responsive Bootstrap 5 layout |
+| **Auth hook** | `pdf_lib_auth_guard()` — integrate any auth system |
+| **DB hook** | Override `db_connect()` to reuse your existing PDO |
+| **Branding** | `MODULE_NAME` constant for custom navbar label |
 
 ---
 
 ## 🔒 Security Notes
 
-- Uploaded files are stored with random filenames (no path traversal risk)
+- Credentials live in `config.php` which is gitignored via `.gitignore`
+- Uploaded files stored with random filenames (no path traversal risk)
 - File type validated via **magic bytes** (`%PDF-`), not just extension
 - All user input sanitized with `htmlspecialchars()` and PDO prepared statements
 - Downloads served via `readfile()` — no direct URL required
+- Delete `install.php` after setup to prevent re-installation
+
+---
+
+## 📋 Requirements
+
+- PHP **8.0+** with `pdo`, `pdo_mysql`, `fileinfo` extensions
+- MySQL / MariaDB **5.7+**
+- Apache or Nginx with PHP handler configured
+- `upload_max_filesize = 50M` / `post_max_size = 55M` in `php.ini` (for large PDFs)
 
 ---
 
 ## 📦 Dependencies (CDN — no install needed)
+
 - [Bootstrap 5.3](https://getbootstrap.com/)
 - [Bootstrap Icons](https://icons.getbootstrap.com/)
 - [PDF.js 4.4](https://mozilla.github.io/pdf.js/) — Mozilla's PDF rendering engine
