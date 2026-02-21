@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="fw-semibold mb-1">Drag & drop your PDF here</p>
         <p class="hint mb-3">or click to browse files</p>
         <input type="file" name="pdf_file" id="pdfFile" accept=".pdf,application/pdf" class="d-none" required>
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('pdfFile').click()">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('pdfFile').click()">
           <i class="bi bi-folder2-open me-1"></i>Choose file
         </button>
       </div>
@@ -239,24 +239,36 @@ clearBtn.addEventListener('click', () => {
   dropZone.classList.remove('d-none');
 });
 
+// Prevent default drag behavior on the entire document so drops outside
+// the zone don't navigate the browser away
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => e.preventDefault());
+
 ['dragover','dragenter'].forEach(e => dropZone.addEventListener(e, ev => {
-  ev.preventDefault(); dropZone.classList.add('dragover');
+  ev.preventDefault();
+  ev.stopPropagation();
+  dropZone.classList.add('dragover');
 }));
-['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
-  ev.preventDefault(); dropZone.classList.remove('dragover');
+['dragleave'].forEach(e => dropZone.addEventListener(e, ev => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  dropZone.classList.remove('dragover');
 }));
 dropZone.addEventListener('drop', ev => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  dropZone.classList.remove('dragover');
   const file = ev.dataTransfer.files[0];
-  if (file && file.type === 'application/pdf') {
+  if (file) {
     const dt = new DataTransfer();
     dt.items.add(file);
     fileInput.files = dt.files;
     showPreview(file);
-  } else {
-    alert('Please drop a PDF file.');
   }
 });
-dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('click', (e) => {
+  if (!e.target.closest('button')) fileInput.click();
+});
 
 form.addEventListener('submit', () => {
   submitBtn.disabled = true;
